@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	// "go/printer"
 	"os"
 	"strings"
 )
@@ -14,7 +13,7 @@ type Room struct {
 	welcomeString string
 	describeString string
 	TasksIsActive bool
-	Places []Place
+	PlacesMap map[string]Place
 }
 
 func (r *Room) GetWelcomeString() (answer string) {
@@ -43,10 +42,12 @@ type Player struct {
 
 func (p *Player) GetLookAroundString() (answer string) {
 	answer += p.room.describeString
-	for _, place := range p.room.Places {
-		answer += place.Name + " "
-		for _, item := range place.Items {
-			answer += item.name + ", "
+	for key, items := range p.room.PlacesMap {
+		if len(items.Items) > 0 {
+			answer += key + " "
+			for _, item := range items.Items {
+				answer += item.name + ", "
+			}
 		}
 	}
 	if p.room.TasksIsActive {
@@ -91,22 +92,20 @@ func initGame() {
 			welcomeString: "кухня, ничего интересного.", 
 			describeString: "ты находишься на кухне, ",
 			AvailableRooms: []string{"коридор"},
-			Places: []Place{{Name: "на столе", Items: []*Item{{"чай", "еда", "ты выпил чай"}}}},
 			TasksIsActive: true,
+			PlacesMap: map[string]Place{"на столе": {Items: []*Item{{"чай", "еда", "ты выпил чай"}}}},
 		},
 		"комната": {
 			Name: "комната", 
 			welcomeString: "ты в своей комнате.",
-			Places: []Place{
-				{
-					Name: "на столе",
+			PlacesMap: map[string]Place{
+				"на столе": {
 					Items: []*Item{
 						{"ключи", "вещь", "предмет добавлен в инвентарь: ключи"},
 						{"конспекты", "вещь", "предмет добавлен в инвентарь: конспекты"},
 					},
 				},
-				{
-					Name: "на стуле",
+				"на стуле": {
 					Items: []*Item{
 						{"рюкзак", "сумка", "вы надели: рюкзак"},
 					},
@@ -168,28 +167,22 @@ func lookAround(player *Player) (answer string) {
 	return
 }
 
-func putOnOLD(player *Player, itemName string) (answer string) {
-
-	newPlaces := []Place{}
-	
-	for _, place := range player.room.Places {
-		var itemIndexToDelete*int = nil	
+func putOn(player *Player, itemName string) (answer string) {
+	for key, place := range player.room.PlacesMap {
+		var itemIndexToDelete*int = nil
 		for idx, item := range place.Items {
 			if item.kind == "сумка" && item.name == itemName {
 				player.Backpack.IsActive = true
 				itemIndexToDelete = &idx
 				answer = item.message
 			}
+		}
 		if itemIndexToDelete != nil {
 			place.Items = append(place.Items[:*itemIndexToDelete], place.Items[*itemIndexToDelete+1:]...)			
+			player.room.PlacesMap[key] = place
 			return answer
 			}
-		}
 	}
 	answer = "нет такого"
 	return
-}
-
-func putOn(player *Player, itemName string) (answer string) {
-	
 }
