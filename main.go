@@ -131,15 +131,14 @@ func handleCommand(command string) string {
 	commandSlice := strings.Split(command, " ")
 	switch commandSlice[0] {
 	
-	case "о":
+	case "осмотреться":
 		return lookAround(&player)
 	case "идти":
 		return move(&player, commandSlice[1], rooms)
 	case "надеть":
 		return putOn(&player, commandSlice[1])
 	case "взять":
-		fmt.Println("")
-	
+		return take(&player, commandSlice[1])	
 	case "применить":
 		fmt.Println("")
 	}
@@ -164,6 +163,31 @@ func move(player *Player, targetRoom string, rooms map[string]*Room) (answer str
 
 func lookAround(player *Player) (answer string) {
 	answer = player.GetLookAroundString()
+	return
+}
+
+func take(player *Player, itemName string) (answer string) {
+	if !player.Backpack.IsActive {
+		answer = "некуда класть"
+		return answer
+	}
+	for key, place := range player.room.PlacesMap {
+		var itemIndexToDelete*int = nil
+		for idx, item := range place.Items {
+			if item.kind == "вещь" && item.name == itemName {
+				player.Backpack.Items = append(player.Backpack.Items, *item)
+				copyOfIndex := idx
+				itemIndexToDelete = &copyOfIndex
+				answer = item.message
+			}
+		}
+		if itemIndexToDelete != nil {
+			place.Items = append(place.Items[:*itemIndexToDelete], place.Items[*itemIndexToDelete+1:]...)			
+			player.room.PlacesMap[key] = place
+			return answer
+		}
+	}
+	answer = "нет такого"
 	return
 }
 
